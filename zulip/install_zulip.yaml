@@ -1,0 +1,76 @@
+---
+
+#This playbook installs a zulip server on debian 9
+# host is the name of the host as defined in the hosts file
+# hostname is the actual hostname - if this is the same as "host" then you don't need to add it
+# email address and ssl file locations are mandatory
+ 
+- hosts: '{{ host }}'
+  tasks: 
+    - name: Include vars from vars.yaml file
+      include_vars:
+        file: vars.yaml
+
+    - fail: msg="email is not set and needs to be"
+      when: email is undefined
+
+    - fail: msg="cert location is not set and needs to be"
+      when: cert_chain is undefined
+
+    - fail: msg="ssl key location is not set and needs to be"
+      when: key is undefined
+
+    - name: get temporary directory
+      shell: mktemp -d
+      register: temp_directory
+
+    - name: download latest zulip
+      get_url:
+        url: https://www.zulip.org/dist/releases/zulip-server-latest.tar.gz
+        dest: "{{ temp_directory.stdout }}"
+    
+    - name: extract zulip
+      shell: tar -xf "{{ temp_directory.stdout }}"/zulip-server-latest.tar.gz -C "{{ temp_directory.stdout }}"
+
+    - name: copy over private key
+      copy:
+        src: "{{ key }}"
+        dest: /etc/ssl/private/zulip.key
+      become: yes
+
+    - name: copy over certificate chain
+      copy:
+        src: "{{ cert_chain }}"
+        dest: /etc/ssl/certs/zulip.combined-chain.crt
+      become: yes
+
+    - name: run install script
+      shell: |
+        "{{ temp_directory.stdout }}"/zulip-server-*/scripts/setup/install --hostname "{{ hostname | default(host) }}" --email "{{ email }}"
+      become: true
+      register: install_script
+
+    - name: set SMTP settings
+      lineinfile:
+        path: /etc/zulip/settings.temp_directory
+        regexp: '^#EMAIL_HOST'
+        line: EMAIL_HOST = '"{{ EMAIL_HOST }}"'
+
+   - lineinfile:
+        path: /etc/zulip/settings.py
+        regexp: '^#EMAIL_HOST_USER'
+        line: EMAIL_HOST_USER = '"{{ EMAIL_HOST_USER }}"'
+
+   - lineinfile:
+        path: /etc/zulip/settings.py
+        regexp: '^#EMAIL_USE_TLS'
+        line: EMAIL_USE_TLS = True
+
+   - lineinfile:
+        path: /etc/zulip/settings.py
+        regexp: '^#EMAIL_PORT'
+        line: EMAIL_PORT = 587
+
+   - lineinfile:
+        path: /etc/zulip/zulip-secrets.py
+        line: email_password = '"{{ email_password }}"'

@@ -1,0 +1,11 @@
+---
+
+host: 
+#ssl key
+key: 
+cert_chain: 
+email:
+EMAIL_HOST:
+EMAIL_HOST_USER:
+#password for SMTP password
+email_password:
