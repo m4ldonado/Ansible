@@ -1,0 +1,16 @@
+---
+#This playbook makes Ubuntu available over rdp and takes hosts as a variable call like ansible-playbook rdp-playbook.yaml --extra-vars hosts="foo"
+- hosts: '{{ hosts }}'
+  tasks:
+    
+    - name: "Install packages"
+      apt:
+        name: "xrdp xfce4"
+        update_cache: yes
+    
+    - name: "Edit xsession"
+      shell: echo xfce4-session > ~/.xsession
+
+    - name: "resart xrdp"
+      state: restarted
+      name: xrdp
