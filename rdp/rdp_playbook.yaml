@@ -12,5 +12,6 @@
       shell: echo xfce4-session > ~/.xsession
 
     - name: "resart xrdp"
-      state: restarted
-      name: xrdp
+      service:
+        state: restarted
+        name: xrdp
